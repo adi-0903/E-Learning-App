@@ -1,14 +1,28 @@
 import { useAuthStore } from '@/store/authStore';
+import { useNotificationStore } from '@/store/notificationStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Button, Card, Divider, Text, TextInput } from 'react-native-paper';
 
 function ProfileScreen({ navigation }: any) {
   const { user, logout } = useAuthStore();
+  const { unreadCount, loadSettings, resetUnreadCount, incrementUnreadCount } = useNotificationStore();
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState(user?.name || '');
   const [bio, setBio] = useState(user?.bio || '');
+
+  useEffect(() => {
+    loadSettings();
+    // Simulate some unread notifications for demo
+    if (unreadCount === 0) {
+      setTimeout(() => {
+        incrementUnreadCount();
+        incrementUnreadCount();
+        incrementUnreadCount();
+      }, 2000);
+    }
+  }, []);
 
   const handleSave = () => {
     if (!name.trim()) {
@@ -138,12 +152,27 @@ function ProfileScreen({ navigation }: any) {
       <View style={styles.settingsSection}>
         <Text style={styles.sectionTitle}>Settings</Text>
 
-        <TouchableOpacity style={styles.settingItem}>
-          <MaterialCommunityIcons
-            name="bell"
-            size={24}
-            color="#1976d2"
-          />
+        <TouchableOpacity 
+          style={styles.settingItem}
+          onPress={() => {
+            resetUnreadCount();
+            navigation.navigate('NotificationSettings');
+          }}
+        >
+          <View style={styles.settingIconContainer}>
+            <MaterialCommunityIcons
+              name="bell"
+              size={24}
+              color="#1976d2"
+            />
+            {unreadCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount.toString()}
+                </Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.settingText}>Notifications</Text>
           <MaterialCommunityIcons
             name="chevron-right"
@@ -326,6 +355,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#0e0b0baa',
+  },
+  settingIconContainer: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#f44336',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
   },
 });
 

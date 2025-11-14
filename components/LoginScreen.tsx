@@ -62,7 +62,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({
             {/* Logo and Header */}
             <View style={styles.header}>
               <Image
-                source={require('@/assets/images/Logo.png')}
+                source={require('@/assets/images/logo.png')}
                 style={styles.logoImage}
               />
               <Text style={styles.title}>MentIQ</Text>

@@ -1,24 +1,23 @@
 import { useAnnouncementStore } from '@/store/announcementStore';
 import { useAuthStore } from '@/store/authStore';
 import { useCourseStore } from '@/store/courseStore';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
-import * as WebBrowser from 'expo-web-browser';
 import * as IntentLauncher from 'expo-intent-launcher';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { useState } from 'react';
 import {
   Alert,
-  FlatList,
   Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
-import { Button, Card, Chip, SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import { Button, Chip, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 
 function CreateAnnouncementScreen({ navigation }: any) {
   const { user } = useAuthStore();
@@ -127,7 +126,7 @@ function CreateAnnouncementScreen({ navigation }: any) {
 
       // Launch image library
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ['images'],
         allowsEditing: false,
         quality: 0.8,
       });

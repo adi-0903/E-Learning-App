@@ -1,43 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { PaperProvider } from 'react-native-paper';
-import { initializeDatabase, seedDatabase } from '@/services/database';
-import { useAuthStore } from '@/store/authStore';
+import MainApp from '@/app/MainApp';
 import { LoginScreen } from '@/components/LoginScreen';
 import { SignupScreen } from '@/components/SignupScreen';
-import MainApp from '@/app/MainApp';
+import { useAuthStore } from '@/store/authStore';
+import { useState } from 'react';
+import { StyleSheet } from 'react-native';
+import { PaperProvider } from 'react-native-paper';
+import SplashScreen from './screens/auth/SplashScreen';
 
 type AuthScreen = 'login' | 'signup';
 
 export default function RootApp() {
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
   const [authScreen, setAuthScreen] = useState<AuthScreen>('login');
-  const { isLoggedIn, user, getCurrentUser } = useAuthStore();
+  const { isLoggedIn, user } = useAuthStore();
 
-  useEffect(() => {
-    const initializeApp = async () => {
-      try {
-        await initializeDatabase();
-        await seedDatabase();
-        
-        // Check if user was previously logged in
-        await getCurrentUser();
-        
-        setIsInitialized(true);
-      } catch (error) {
-        console.error('Failed to initialize app:', error);
-        setIsInitialized(true); // Continue anyway
-      }
-    };
-
-    initializeApp();
-  }, [getCurrentUser]);
-
-  if (!isInitialized) {
+  // Show splash screen first
+  if (showSplash) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#1976d2" />
-      </View>
+      <PaperProvider>
+        <SplashScreen onFinish={() => setShowSplash(false)} />
+      </PaperProvider>
     );
   }
 

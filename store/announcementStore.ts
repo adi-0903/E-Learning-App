@@ -1,5 +1,11 @@
-import { create } from 'zustand';
 import db from '@/services/database';
+import { create } from 'zustand';
+
+export interface Attachment {
+  links?: string[];
+  pdfs?: { name: string; uri: string }[];
+  images?: { name: string; uri: string }[];
+}
 
 export interface Announcement {
   id: number;
@@ -7,6 +13,7 @@ export interface Announcement {
   teacherId: number;
   title: string;
   content: string;
+  attachments?: string; // JSON stringified Attachment object
   createdAt: string;
   updatedAt?: string;
 }
@@ -87,9 +94,11 @@ export const useAnnouncementStore = create<AnnouncementState>((set) => ({
 
   createAnnouncement: async (announcement: Omit<Announcement, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
+      const attachmentsJson = announcement.attachments ? JSON.stringify(announcement.attachments) : null;
+      const currentTimestamp = new Date().toISOString();
       await db.runAsync(
-        'INSERT INTO announcements (courseId, teacherId, title, content) VALUES (?, ?, ?, ?)',
-        [announcement.courseId, announcement.teacherId, announcement.title, announcement.content]
+        'INSERT INTO announcements (courseId, teacherId, title, content, attachments, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [announcement.courseId, announcement.teacherId, announcement.title, announcement.content, attachmentsJson, currentTimestamp, currentTimestamp]
       );
     } catch (error) {
       console.error('Error creating announcement:', error);

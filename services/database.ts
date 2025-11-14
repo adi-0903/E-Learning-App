@@ -7,7 +7,9 @@ export const migrateDatabase = async () => {
     // Check if announcements table exists and has the old schema
     const tableInfo = await db.getAllAsync("PRAGMA table_info(announcements)") as any[];
     const courseIdColumn = tableInfo.find((col: any) => col.name === 'courseId');
+    const attachmentsColumn = tableInfo.find((col: any) => col.name === 'attachments');
     
+    // Migration 1: Allow NULL courseId
     if (courseIdColumn && courseIdColumn.notnull === 1) {
       console.log('Migrating announcements table to allow NULL courseId...');
       
@@ -19,6 +21,7 @@ export const migrateDatabase = async () => {
           teacherId INTEGER NOT NULL,
           title TEXT NOT NULL,
           content TEXT NOT NULL,
+          attachments TEXT,
           createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
           updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (courseId) REFERENCES courses(id),
@@ -37,6 +40,19 @@ export const migrateDatabase = async () => {
       await db.execAsync('ALTER TABLE announcements_new RENAME TO announcements;');
       
       console.log('Database migration completed successfully');
+    }
+    
+    // Migration 2: Add attachments column if it doesn't exist
+    if (!attachmentsColumn) {
+      console.log('Adding attachments column to announcements table...');
+      try {
+        await db.execAsync(`
+          ALTER TABLE announcements ADD COLUMN attachments TEXT;
+        `);
+        console.log('Attachments column added successfully');
+      } catch (error) {
+        console.log('Attachments column may already exist or migration not needed');
+      }
     }
   } catch (error) {
     console.error('Error during database migration:', error);
@@ -223,6 +239,7 @@ export const initializeDatabase = async () => {
         teacherId INTEGER NOT NULL,
         title TEXT NOT NULL,
         content TEXT NOT NULL,
+        attachments TEXT,
         createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (courseId) REFERENCES courses(id),
