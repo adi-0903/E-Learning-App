@@ -2,7 +2,6 @@ import { useAnnouncementStore } from '@/store/announcementStore';
 import { useAuthStore } from '@/store/authStore';
 import { useCourseStore } from '@/store/courseStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as IntentLauncher from 'expo-intent-launcher';
 import * as WebBrowser from 'expo-web-browser';
@@ -35,10 +34,6 @@ function CreateAnnouncementScreen({ navigation }: any) {
   const [pdfs, setPdfs] = useState<{ name: string; uri: string }[]>([]);
   const [images, setImages] = useState<{ name: string; uri: string }[]>([]);
   const [newLink, setNewLink] = useState('');
-  const [showPdfInput, setShowPdfInput] = useState(false);
-  const [showImageInput, setShowImageInput] = useState(false);
-  const [pdfFileName, setPdfFileName] = useState('');
-  const [imageFileName, setImageFileName] = useState('');
   const [previewUri, setPreviewUri] = useState<string | null>(null);
   const [previewType, setPreviewType] = useState<'image' | 'pdf' | null>(null);
 
@@ -47,12 +42,22 @@ function CreateAnnouncementScreen({ navigation }: any) {
       Alert.alert('Error', 'Please enter a valid link');
       return;
     }
-    setLinks([...links, newLink]);
+    // Check if it's a PDF link
+    if (newLink.toLowerCase().endsWith('.pdf')) {
+      const fileName = newLink.split('/').pop()?.split('?')[0] || `PDF_${pdfs.length + 1}`;
+      setPdfs([...pdfs, { name: fileName, uri: newLink }]);
+    } else {
+      setLinks([...links, newLink]);
+    }
     setNewLink('');
   };
 
   const removeLink = (index: number) => {
     setLinks(links.filter((_, i) => i !== index));
+  };
+
+  const removePdfLink = (index: number) => {
+    setPdfs(pdfs.filter((_, i) => i !== index));
   };
 
   const handlePreviewPdf = (uri: string) => {
@@ -91,25 +96,6 @@ function CreateAnnouncementScreen({ navigation }: any) {
     }
   };
 
-  const pickPdfFile = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: 'application/pdf',
-      });
-
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const file = result.assets[0];
-        const fileName = file.name || 'PDF Document';
-        setPdfs([...pdfs, { name: fileName, uri: file.uri }]);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to pick PDF file. Please try again.');
-    }
-  };
-
-  const removePdf = (index: number) => {
-    setPdfs(pdfs.filter((_, i) => i !== index));
-  };
 
   const pickImageFile = async () => {
     try {
@@ -320,25 +306,26 @@ function CreateAnnouncementScreen({ navigation }: any) {
               activeOutlineColor="#667eea"
               multiline
               numberOfLines={8}
-              maxLength={1000}
+              maxLength={6000}
               placeholder="Write your announcement here..."
             />
-            <Text style={styles.charCount}>{content.length}/1000</Text>
+            <Text style={styles.charCount}>{content.length}/6000</Text>
           </View>
 
           {/* Links Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📎 Add Links</Text>
+            <Text style={styles.sectionTitle}>📎 Add Links & PDFs</Text>
+            <Text style={styles.linkHint}>Enter any URL or PDF link</Text>
             <View style={styles.attachmentInputContainer}>
               <TextInput
-                label="Enter link URL"
+                label="Enter link or PDF URL"
                 value={newLink}
                 onChangeText={setNewLink}
                 mode="outlined"
                 style={styles.attachmentInput}
                 outlineColor="#e0e0e0"
                 activeOutlineColor="#667eea"
-                placeholder="https://example.com"
+                placeholder="https://example.com or .pdf"
               />
               <Button
                 mode="contained"
@@ -349,11 +336,11 @@ function CreateAnnouncementScreen({ navigation }: any) {
                 Add
               </Button>
             </View>
-            {links.length > 0 && (
+            {(links.length > 0 || pdfs.length > 0) && (
               <View style={styles.chipContainer}>
                 {links.map((link, index) => (
                   <Chip
-                    key={index}
+                    key={`link-${index}`}
                     icon="link"
                     onClose={() => removeLink(index)}
                     style={styles.attachmentChip}
@@ -362,40 +349,18 @@ function CreateAnnouncementScreen({ navigation }: any) {
                     Link {index + 1}
                   </Chip>
                 ))}
-              </View>
-            )}
-          </View>
-
-          {/* PDFs Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📄 Add PDFs</Text>
-            <Button
-              mode="contained"
-              onPress={pickPdfFile}
-              style={styles.uploadButton}
-              labelStyle={styles.uploadButtonLabel}
-              icon="file-pdf-box"
-            >
-              Choose PDF File
-            </Button>
-            {pdfs.length > 0 && (
-              <View style={styles.chipContainer}>
                 {pdfs.map((pdf, index) => {
                   const shortName = pdf.name.length > 20 ? pdf.name.substring(0, 17) + '...' : pdf.name;
                   return (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => handlePreviewPdf(pdf.uri)}
-                      style={[styles.attachmentChip, styles.pdfChip, styles.previewChip]}
+                    <Chip
+                      key={`pdf-${index}`}
+                      icon="file-pdf-box"
+                      onClose={() => removePdfLink(index)}
+                      style={styles.attachmentChip}
+                      textStyle={styles.chipText}
                     >
-                      <View style={styles.chipContent}>
-                        <MaterialCommunityIcons name="file-pdf-box" size={16} color="#ff9800" />
-                        <Text style={styles.chipText} numberOfLines={1}>{shortName}</Text>
-                        <TouchableOpacity onPress={() => removePdf(index)} style={styles.closeButton}>
-                          <MaterialCommunityIcons name="close" size={16} color="#ff9800" />
-                        </TouchableOpacity>
-                      </View>
-                    </TouchableOpacity>
+                      {shortName}
+                    </Chip>
                   );
                 })}
               </View>
@@ -501,7 +466,7 @@ function CreateAnnouncementScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f0f3f9',
   },
   scrollView: {
     flex: 1,
@@ -549,13 +514,24 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   section: {
-    marginBottom: 28,
+    marginBottom: 22,
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    padding: 22,
+    elevation: 5,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    borderWidth: 0.5,
+    borderColor: 'rgba(102, 126, 234, 0.1)',
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 12,
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0d0d0d',
+    marginBottom: 18,
+    letterSpacing: 0.4,
   },
   segmentedButtons: {
     marginBottom: 0,
@@ -565,7 +541,8 @@ const styles = StyleSheet.create({
   },
   segmentLabel: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
   subjectScroll: {
     marginHorizontal: -20,
@@ -575,40 +552,62 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 9,
+    borderRadius: 22,
     backgroundColor: '#f0f4ff',
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#667eea',
-    marginRight: 12,
+    marginRight: 10,
+    elevation: 3,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
   },
   subjectChipActive: {
     backgroundColor: '#667eea',
     borderColor: '#667eea',
+    elevation: 6,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
   },
   subjectChipText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#667eea',
     maxWidth: 100,
+    letterSpacing: 0.2,
   },
   subjectChipTextActive: {
     color: '#fff',
   },
   input: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#f8f9fc',
+    borderRadius: 13,
+    borderWidth: 0,
+    fontSize: 15,
+    fontWeight: '500',
   },
   contentInput: {
     minHeight: 120,
     textAlignVertical: 'top',
   },
   charCount: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 8,
+    textAlign: 'right',
+    fontWeight: '600',
+  },
+  linkHint: {
     fontSize: 12,
     color: '#999',
-    marginTop: 6,
-    textAlign: 'right',
+    marginBottom: 12,
+    fontStyle: 'italic',
+    fontWeight: '600',
   },
   infoCard: {
     backgroundColor: '#f0f4ff',
@@ -640,19 +639,27 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 8,
   },
   cancelButton: {
     flex: 1,
-    borderColor: '#ddd',
+    borderColor: '#e0e0e0',
     borderWidth: 1,
+    backgroundColor: '#f8f9fc',
   },
   submitButton: {
     flex: 1,
     backgroundColor: '#667eea',
+    elevation: 8,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
   },
   buttonLabel: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 0.4,
   },
   attachmentInputContainer: {
     flexDirection: 'row',
@@ -661,26 +668,42 @@ const styles = StyleSheet.create({
   },
   attachmentInput: {
     flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+    backgroundColor: '#f8f9fc',
+    borderRadius: 13,
+    borderWidth: 0,
+    fontSize: 14,
+    fontWeight: '500',
   },
   addButton: {
     backgroundColor: '#667eea',
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
+    borderRadius: 13,
+    elevation: 6,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
   },
   addButtonLabel: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '900',
+    letterSpacing: 0.3,
   },
   uploadButton: {
     backgroundColor: '#667eea',
-    marginTop: 8,
-    borderRadius: 12,
+    marginTop: 14,
+    borderRadius: 13,
+    elevation: 6,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
   },
   uploadButtonLabel: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontWeight: '900',
     color: '#fff',
+    letterSpacing: 0.3,
   },
   cancelSmallButton: {
     borderColor: '#ddd',
@@ -694,38 +717,57 @@ const styles = StyleSheet.create({
   chipContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 16,
-    paddingHorizontal: 4,
+    gap: 13,
+    marginTop: 18,
+    paddingHorizontal: 0,
   },
   attachmentChip: {
     backgroundColor: '#e8eef7',
     borderColor: '#667eea',
-    borderWidth: 1.5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    maxWidth: '80%',
+    borderWidth: 1.2,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
+    maxWidth: '85%',
+    borderRadius: 15,
+    elevation: 3,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
   },
   pdfChip: {
     backgroundColor: '#fff8e1',
     borderColor: '#ff9800',
-    borderWidth: 1.5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderWidth: 1.2,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
     maxWidth: '80%',
+    borderRadius: 15,
+    elevation: 3,
+    shadowColor: '#ff9800',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
   },
   imageChip: {
     backgroundColor: '#f3e5f5',
     borderColor: '#9c27b0',
-    borderWidth: 1.5,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderWidth: 1.2,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
     maxWidth: '80%',
+    borderRadius: 15,
+    elevation: 3,
+    shadowColor: '#9c27b0',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
   },
   chipText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#333',
+    letterSpacing: 0.2,
   },
   previewChip: {
     cursor: 'pointer',

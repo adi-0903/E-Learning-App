@@ -97,17 +97,24 @@ function AnnouncementsScreen({ navigation }: any) {
   const handleOpenPdf = async (uri: string) => {
     try {
       if (Platform.OS === 'android') {
+        // For Android, use IntentLauncher with MIME type to open with available PDF viewer
         await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
           data: uri,
           flags: 1,
+          type: 'application/pdf',
         });
       } else if (Platform.OS === 'ios') {
-        await WebBrowser.openBrowserAsync(uri);
+        // For iOS, try to open with default PDF viewer
+        await IntentLauncher.startActivityAsync('ios.intent.action.VIEW', {
+          data: uri,
+          flags: 1,
+        });
       } else {
         await WebBrowser.openBrowserAsync(uri);
       }
     } catch (error) {
-      Alert.alert('Error', 'Unable to open PDF');
+      console.error('PDF open error:', error);
+      Alert.alert('Error', 'Unable to open PDF. Make sure you have a PDF viewer installed.');
     }
   };
 
